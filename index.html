@@ -16,7 +16,7 @@ main{padding:18px 14px 80px}.panel{background:var(--card);border:1px solid var(-
 <main>
 <section class="panel" id="startPanel">
 <h2>Escolha o modo de estudo</h2>
-<p>Agora a Rafaela pode treinar por matéria separada ou fazer o simulado completo. O sistema salva automaticamente o andamento no celular: se ela parar na questão 20, ao voltar poderá continuar exatamente dali. Ao tocar em uma alternativa, mostra se acertou ou errou e explica o motivo.</p>
+<p>Agora a Rafaela pode treinar por matéria separada ou fazer o simulado completo. O sistema salva automaticamente o andamento no celular: ela pode tocar em “Pausar e voltar ao início” e depois continuar exatamente da questão em que parou. Ao tocar em uma alternativa, mostra se acertou ou errou e explica o motivo.</p>
 
 <div class="resume-box hidden" id="resumeBox"><b>Progresso salvo encontrado</b><p id="resumeText"></p><div class="row"><button class="btn orange" onclick="resumeQuiz()">Continuar de onde parei</button><button class="btn secondary" onclick="clearSavedProgress()">Começar do zero</button></div></div>
 <h3 class="section-title">Matérias disponíveis</h3>
@@ -37,7 +37,7 @@ main{padding:18px 14px 80px}.panel{background:var(--card);border:1px solid var(-
 <div class="question" id="question"></div>
 <div class="options" id="options"></div>
 <div class="feedback" id="feedback"></div>
-<div class="controls"><button class="btn secondary" id="prevBtn" onclick="prevQ()">Anterior</button><button class="btn" id="nextBtn" onclick="nextQ()">Próxima</button><button class="btn orange" onclick="finishQuiz()">Finalizar</button></div>
+<div class="controls"><button class="btn secondary" id="prevBtn" onclick="prevQ()">Anterior</button><button class="btn secondary" id="pauseBtn" onclick="pauseQuiz()">Pausar e voltar ao início</button><button class="btn" id="nextBtn" onclick="nextQ()">Próxima</button><button class="btn orange" id="finishBtn" onclick="finishQuiz()">Finalizar</button></div>
 </section>
 <section class="panel review" id="reviewPanel"><h2>Resultado final</h2><div class="stats"><div class="stat"><b id="rScore"></b><small>Nota geral</small></div><div class="stat"><b id="rHits"></b><small>Acertos</small></div><div class="stat"><b id="rMiss"></b><small>Erros</small></div><div class="stat"><b id="rTotal"></b><small>Total</small></div></div><div id="byCat"></div><h3>Revisão das questões erradas</h3><div id="wrongList"></div><div class="controls"><button class="btn orange" onclick="restartWrong()">Refazer erradas</button><button class="btn secondary" onclick="location.reload()">Reiniciar tudo</button></div></section>
 </main>
@@ -112,8 +112,8 @@ function readSavedProgress(){
     if(!raw) return null;
     const st = JSON.parse(raw);
     if(!st || !Array.isArray(st.quizIds) || st.quizIds.length===0) return null;
-    const answered = Object.keys(st.answers || {}).length;
-    if(answered >= st.quizIds.length) return null;
+    // Mantém o progresso mesmo se todas as questões tiverem sido respondidas,
+    // porque a aluna pode ter fechado o navegador antes de tocar em Finalizar.
     return st;
   }catch(e){return null;}
 }
@@ -123,7 +123,10 @@ function showResumeIfAny(){
   if(!savedState){box.classList.add('hidden'); return;}
   const answered = Object.keys(savedState.answers || {}).length;
   const qNumber = Math.min((savedState.current||0)+1, savedState.quizIds.length);
-  document.getElementById('resumeText').textContent = `${labelMode(savedState.mode)} — ${answered} respondidas de ${savedState.quizIds.length}. Última posição: questão ${qNumber}.`;
+  const statusText = answered >= savedState.quizIds.length
+    ? 'todas as questões foram respondidas; toque em continuar para revisar/finalizar o resultado'
+    : `última posição: questão ${qNumber}`;
+  document.getElementById('resumeText').textContent = `${labelMode(savedState.mode)} — ${answered} respondidas de ${savedState.quizIds.length}; ${statusText}.`;
   box.classList.remove('hidden');
 }
 function startQuiz(selected){
@@ -197,6 +200,10 @@ function showQ(){
   if(answers[q.id]!==undefined)renderFeedback(q, answers[q.id]);
   document.getElementById('prevBtn').disabled=current===0;
   document.getElementById('nextBtn').textContent=current===quiz.length-1?'Ver resultado':'Próxima';
+  const finishBtn = document.getElementById('finishBtn');
+  const answeredCount = Object.keys(answers).length;
+  finishBtn.textContent = answeredCount >= quiz.length ? 'Finalizar' : 'Finalizar ao concluir';
+  finishBtn.title = answeredCount >= quiz.length ? 'Gerar resultado final' : 'O resultado só pode ser finalizado depois que todas as questões forem respondidas';
   updateStats();
 }
 function answer(i){
@@ -233,7 +240,22 @@ function nextQ(){
 function prevQ(){
   if(current>0){current--; saveProgress(); showQ()}
 }
+function pauseQuiz(){
+  // Salva exatamente a questão atual e volta para a tela inicial sem zerar nada.
+  saveProgress();
+  document.getElementById('quizPanel').classList.add('hidden');
+  document.getElementById('reviewPanel').style.display='none';
+  document.getElementById('startPanel').classList.remove('hidden');
+  showResumeIfAny();
+  window.scrollTo(0,0);
+}
 function finishQuiz(){
+  const answeredCount = Object.keys(answers).length;
+  if(answeredCount < quiz.length){
+    alert(`Você respondeu ${answeredCount} de ${quiz.length} questões. Para não perder o andamento, toque em “Pausar e voltar ao início”. O resultado só será finalizado depois que responder todas as questões.`);
+    saveProgress();
+    return;
+  }
   document.getElementById('quizPanel').classList.add('hidden');
   document.getElementById('reviewPanel').style.display='block';
   const total=quiz.length;

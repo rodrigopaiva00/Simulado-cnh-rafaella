@@ -14,11 +14,11 @@ main{padding:18px 14px 80px}.panel{background:var(--card);border:1px solid var(-
 </style>
 </head>
 <body>
-<header><div class="wrap"><h1 class="title">Simulado CNH da Rafaela</h1><p class="sub">540 questões no banco • completo com 60, 130, 270 ou 540 • matéria com 30 ou 90 • salva progresso</p><div class="bar"><span id="progressBar"></span></div></div></header>
+<header><div class="wrap"><h1 class="title">Simulado CNH da Rafaela</h1><p class="sub">540 questões no banco • completo com 30, 60, 130, 270 ou 540 • matéria com 30 ou 90 • salva progresso</p><div class="bar"><span id="progressBar"></span></div></div></header>
 <main>
 <section class="panel" id="startPanel">
 <h2>Escolha o modo de estudo</h2>
-<p>Agora a Rafaela pode treinar por matéria separada ou fazer o simulado completo escolhendo a quantidade de questões. No simulado completo, ela pode escolher 60, 130, 270 ou 540 questões. Em cada matéria separada, ela pode escolher 30 ou 90 questões. O sistema salva automaticamente o andamento no celular: ela pode tocar em “Tela inicial” para salvar a prova em andamento e voltar para a tela inicial. Depois, basta tocar em “CONTINUAR SIMULADO” para retornar exatamente à questão em que parou.</p>
+<p>Agora a Rafaela pode treinar por matéria separada ou fazer o simulado completo escolhendo a quantidade de questões. No simulado completo, ela pode escolher 30, 60, 130, 270 ou 540 questões. Em cada matéria separada, ela pode escolher 30 ou 90 questões. O sistema salva automaticamente o andamento no celular: ela pode tocar em “Tela inicial” para salvar a prova em andamento e voltar para a tela inicial. Depois, basta tocar em “CONTINUAR SIMULADO” para retornar exatamente à questão em que parou.</p>
 
 <div class="resume-box hidden" id="resumeBox"><b>Simulado em andamento</b><p id="resumeText"></p><div class="row"><button class="btn orange" onclick="resumeQuiz()">CONTINUAR SIMULADO</button><button class="btn secondary" onclick="clearSavedProgress()">Apagar e começar do zero</button></div></div>
 <h3 class="section-title">Matérias disponíveis</h3>
@@ -65,7 +65,7 @@ let quiz=[], current=0, answers={}, shuffleEnabled=false, savedState=null;
 function countByCategory(category){return allQuestions.filter(q=>q.category===category).length;}
 function labelMode(value){return value==='all' ? 'Simulado completo' : value;}
 function getCountOptionsForMode(value){
-  return value === 'all' ? [540, 270, 130, 60] : [90, 30];
+  return value === 'all' ? [540, 270, 130, 60, 30] : [90, 30];
 }
 function updateQuestionCountOptions(){
   const options = getCountOptionsForMode(selectedMode);
@@ -85,7 +85,7 @@ function createCategoryControls(){
   const allBtn = document.createElement('button');
   allBtn.className = 'cat-card all active';
   allBtn.dataset.value = 'all';
-  allBtn.innerHTML = `<b>Simulado completo</b><span>Escolha 60, 130, 270 ou 540 questões misturando todas as matérias</span>`;
+  allBtn.innerHTML = `<b>Simulado completo</b><span>Escolha 30, 60, 130, 270 ou 540 questões misturando todas as matérias</span>`;
   allBtn.onclick = () => selectMode('all');
   categoryButtons.appendChild(allBtn);
   categoryNames.forEach(c=>{

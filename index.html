@@ -68,6 +68,7 @@ const mode = document.getElementById('mode');
 const questionCount = document.getElementById('questionCount');
 const categoryButtons = document.getElementById('categoryButtons');
 const STORAGE_KEY = 'simulado_cnh_rafaela_v7_placas129';
+const LEGACY_STORAGE_KEYS = ['simulado_cnh_rafaela_v4_quantidades','simulado_cnh_rafaela_v3_tela_inicial','simulado_cnh_rafaela_v2_continuar','simulado_cnh_rafaela_v1'];
 const HISTORY_KEY = 'simulado_cnh_rafaela_historico_desempenho_v1';
 let selectedMode = 'all';
 let requestedCount = allQuestions.length;
@@ -162,16 +163,34 @@ function saveProgress(){
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
+function normalizeSavedProgress(st, sourceKey){
+  if(!st || !Array.isArray(st.quizIds) || st.quizIds.length===0) return null;
+  const validIds = new Set(allQuestions.map(q=>q.id));
+  const filteredIds = st.quizIds.filter(id => validIds.has(id));
+  if(!filteredIds.length) return null;
+  st.quizIds = filteredIds;
+  st.answers = st.answers || {};
+  Object.keys(st.answers).forEach(id => { if(!validIds.has(Number(id))) delete st.answers[id]; });
+  st.current = Math.min(Math.max(Number(st.current || 0), 0), filteredIds.length - 1);
+  st.total = filteredIds.length;
+  st.requestedCount = Number(st.requestedCount || st.total || filteredIds.length);
+  if(sourceKey && sourceKey !== STORAGE_KEY){
+    st.migratedFrom = sourceKey;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+  }
+  return st;
+}
 function readSavedProgress(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return null;
-    const st = JSON.parse(raw);
-    if(!st || !Array.isArray(st.quizIds) || st.quizIds.length===0) return null;
-    // Mantém o progresso mesmo se todas as questões tiverem sido respondidas,
-    // porque a aluna pode ter fechado o navegador antes de tocar em Finalizar.
-    return st;
-  }catch(e){return null;}
+  const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+  for(const key of keys){
+    try{
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      const st = normalizeSavedProgress(JSON.parse(raw), key);
+      if(st) return st;
+    }catch(e){}
+  }
+  return null;
 }
 function showResumeIfAny(){
   savedState = readSavedProgress();
@@ -236,7 +255,7 @@ function resumeQuiz(){
   showQ();
 }
 function clearSavedProgress(){
-  localStorage.removeItem(STORAGE_KEY);
+  [STORAGE_KEY, ...LEGACY_STORAGE_KEYS].forEach(key=>localStorage.removeItem(key));
   savedState=null;
   document.getElementById('resumeBox').classList.add('hidden');
   alert('Progresso apagado. Agora você pode iniciar um simulado do zero.');
